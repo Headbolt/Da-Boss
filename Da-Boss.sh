@@ -54,8 +54,7 @@ DefaultAdmin="administrator"
 ExtraAdmins='INCEPTA\enterprise admins,' # Normally Only used for Specific Additional Admins not referenced Elsewhere
 #
 # Set the name of the script for later logging
-ScriptName="ZZ 17 - Global Settings - Allowed Admins"
-# ScriptName="append prefix here as needed - Allowed Admins"
+ScriptName="append prefix here as needed - Allowed Admins"
 #
 ###############################################################################################################################################
 #
