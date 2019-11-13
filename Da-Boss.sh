@@ -50,8 +50,7 @@ DefaultAdmin="administrator"
 # The entire String must be encapsulated in single quotes 
 # eg. '"DOMAIN\enterprise admins","DOMAIN2\domain admins",'
 #
-#ExtraAdmins=','
-ExtraAdmins='INCEPTA\enterprise admins,' # Normally Only used for Specific Additional Admins not referenced Elsewhere
+#ExtraAdmins=',' # Normally Only used for Specific Additional Admins not referenced Elsewhere
 #
 # Set the name of the script for later logging
 ScriptName="append prefix here as needed - Allowed Admins"
