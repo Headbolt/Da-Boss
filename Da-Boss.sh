@@ -287,10 +287,10 @@ for REMuser in "${RemoveUser[@]}" # Process Each User in the "Remove" Array
 	do # access each element of array
 		if [[ $KeepArray != "" ]] # Checks If KeepArray is Blank, and if So Bypasses checks that will fail
 			then
+				REMOVE=""
 				read -ra KeepUser <<< "$KeepArray" # Read in the Array of Users to Process to Keep
 				for noDELuser in "${KeepUser[@]}" # Process Each User in the "Keep" Array
 					do # access each element of array
-						REMOVE=""
 						if [[ $noDELuser != $REMuser ]] # Compare Remove and Keep Array Users for Matches
 							then
 								if [[ $REMOVE == "NO" ]]
