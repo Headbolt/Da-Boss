@@ -4,6 +4,9 @@
 #
 # ABOUT THIS PROGRAM
 #
+#	Da-Boss.sh
+#	https://github.com/Headbolt/Da-Boss
+#
 #   This Script is designed for use in JAMF
 #
 #   This script was designed to check the Accounts that have local Admin permissions and reset the list if required
@@ -13,7 +16,7 @@
 #
 # HISTORY
 #
-#   Version: 1.2 - 13/11/2019
+#   Version: 1.3 - 01/09/2021
 #
 #   - 01/03/2018 - V1.0 - Created by Headbolt
 #
@@ -22,6 +25,8 @@
 #                           More comprehensive error checking and notation
 #   - 13/11/2019 - V1.2 - Updated by Headbolt
 #							Bug Fixes and Improvements
+#   - 01/09/2021 - V1.3 - Updated by Headbolt
+#							Bug Fixes and Improvements
 #
 ###############################################################################################################################################
 #
@@ -29,20 +34,16 @@
 #
 ###############################################################################################################################################
 #
-# Grabs the list of the required Local Admins (MUST se seperated by comma's) from JAMF variable #4 eg. Admin,Support
-AdminUsers=$4
-# Grabs the list AD Groups whose members should be Local Admins (MUST se seperated by comma's) from JAMF variable #5 eg. GroupA,GroupB
-TargetLocalADAdmins=$5
-# Grabs the NETBIOS name of the AD Domain that the users Machine Resides in from JAMF variable #6 eg. DOMAIN
-DOMAIN=$6
-# Grabs the Username of a user that has been granted specific permissions just for this task from JAMF variable #7 eg. username
-# Recommended is Read permissions ONLY to the relevant area#s of AD 
-USER=$7
-# Grabs the Password of a user that has been granted specific permissions just for this task from JAMF variable #8 eg. password
-PASS=$8
+AdminUsers=$4 # Grabs the list of the required Local Admins (MUST se seperated by comma's) from JAMF variable #4 eg. Admin,Support
+
+TargetLocalADAdmins=$5 # Grabs the list AD Groups whose members should be Local Admins 
+#						(MUST se seperated by comma's) from JAMF variable #5 eg. DOMAIN\GroupA,DOMAIN\GroupB
+DOMAIN=$6 # Grabs the NETBIOS name of the AD Domain that the users Machine Resides in from JAMF variable #6 eg. DOMAIN
+USER=$7 # Grabs the Username of a user that has been granted specific permissions just for this task from JAMF variable #7 eg. username
+		# Recommended is Read permissions ONLY to the relevant area#s of AD 
+PASS=$8 # Grabs the Password of a user that has been granted specific permissions just for this task from JAMF variable #8 eg. password
 #
-# Set any Default "Override" AdminAccount that must always remain
-DefaultAdmin="administrator"
+DefaultAdmin="administrator" # Set any Default "Override" AdminAccount that must always remain
 #
 # AD Domain "Domain Admins" Will be Added By Default, but use the below variable to add any further
 # Administrators from any other Domains, these should be specified seperated by comma's 
@@ -50,7 +51,8 @@ DefaultAdmin="administrator"
 # The entire String must be encapsulated in single quotes 
 # eg. '"DOMAIN\enterprise admins","DOMAIN2\domain admins",'
 #
-#ExtraAdmins=',' # Normally Only used for Specific Additional Admins not referenced Elsewhere
+#ExtraAdmins=','
+ExtraAdmins='INCEPTA\enterprise admins,' # Normally Only used for Specific Additional Admins not referenced Elsewhere
 #
 # Set the name of the script for later logging
 ScriptName="append prefix here as needed - Allowed Admins"
@@ -65,7 +67,7 @@ ScriptName="append prefix here as needed - Allowed Admins"
 #
 ADchecks(){
 #
-/bin/echo Checking AD Creds Are Present
+/bin/echo 'Checking AD Creds Are Present'
 #
 ADcredsChecks=""
 #
@@ -90,9 +92,9 @@ fi
 #
 if [[ $ADcredsChecks == "OK" ]] 
 	then
-		/bin/echo AD Creds Are Present
+		/bin/echo 'AD Creds Are Present'
 	else
-		/bin/echo AD Creds Missing, Skipping AD Related Sections
+		/bin/echo 'AD Creds Missing, Skipping AD Related Sections'
 fi
 #
 }
@@ -127,24 +129,22 @@ CurrentLocalADAdmins=$(dsconfigad -show | grep "Allowed admin groups" | cut -c 3
 #
 ADadminGroups(){
 #
-TargetLocalADAdminString=$(Echo domain admins,"$ExtraAdmins""$TargetLocalADAdmins")
+TargetLocalADAdminString=$(Echo $DOMAIN\\domain admins,"$ExtraAdmins""$TargetLocalADAdmins")
 #
-/bin/echo Checking AD Groups whose members should be Admins
+/bin/echo 'Checking AD Groups whose members should be Admins'
 # Now Compare Current AD Allowed Admins to the Target AD Allowed Admins
 if test "$CurrentLocalADAdmins" == "$TargetLocalADAdminString"
 	then
-		## If AD Allowed Admins Match, Nothing to do
-		/bin/echo AD Groups whose members should be Admins are already correct
+		# If AD Allowed Admins Match, Nothing to do
+		/bin/echo 'AD Groups whose members should be Admins are already correct'
 	else
-		## If AD Allowed Admins Do Not Match, Change It
-		/bin/echo AD Groups whose members should be Admins needs Updating
-		# Outputs a blank line for reporting purposes
-		/bin/echo
+		# If AD Allowed Admins Do Not Match, Change It
+		/bin/echo 'AD Groups whose members should be Admins needs Updating'
+		/bin/echo # Outputs a blank line for reporting purposes
 		# Outputs the New AD Allowed Admins
-		/bin/echo AD Groups whose members should be Admins Being Reset To :
+		/bin/echo 'AD Groups whose members should be Admins Being Reset To :'
 		/bin/echo $TargetLocalADAdminString
-		# Outputting a Blank Line for Reporting Purposes
-		/bin/echo
+		/bin/echo # Outputting a Blank Line for Reporting Purposes
 		dsconfigad -groups "$TargetLocalADAdminString"
 fi
 #
@@ -183,14 +183,19 @@ for username in $(dscl . list /Users UniqueID | awk '$2 > 200 { print $1 }' | tr
 				# Any reported accounts are added to the array list
 				if [[ $AdminUsers != *$username* ]]
 					then
-						/bin/echo Checking $username
+						/bin/echo "Checking $username"
 						if [[ $username == $DefaultAdmin ]]
 							then
-								/bin/echo Keeping $username as it is 
-								/bin/echo selected as a Default Admin
+								/bin/echo "Keeping $username as it is" 
+								/bin/echo 'selected as a Default Admin'
 								SectionEnd
 							else
 								IFS=',' # Internal Field Seperator Delimiter is set to Comma (,)
+                                if [ $ZSH_VERSION ] # Check if shell is ZSH and if so enable IFS
+									then
+										setopt sh_word_split
+								fi
+								#
 								read -ra ADadmins <<< "$CurrentLocalADAdmins" # Read in the Array of Current Admin Users
 								for i in "${ADadmins[@]}"
 									do # access each element of array
@@ -205,7 +210,7 @@ for username in $(dscl . list /Users UniqueID | awk '$2 > 200 { print $1 }' | tr
 										#
 										if [[ $usr != "" ]] # Check if User cn is in the Group
 											then
-												/bin/echo User '"'$username'"' is PRESENT in Group '"'$i'"' # User is in the group
+												/bin/echo 'User '"'$username'"' is PRESENT in Group '"'$i'"'' # User is in the group
 												KEEP=$(/bin/echo $KeepArray | grep $username) # Check if the User is in the Array of users to Keep
 													if [[ $KEEP == "" ]]
 														then # User is not in the Keep Array, add them with a delimiter after
@@ -224,9 +229,9 @@ for username in $(dscl . list /Users UniqueID | awk '$2 > 200 { print $1 }' | tr
 								KEEPend=$(/bin/echo $KeepArray | grep $username) # Checking the KeepEnd array for the user account
 								if [[ $KEEPend != "" ]]
 									then # User is in the array, output relevant message
-										/bin/echo Marking $username to be kept as an Admin
+										/bin/echo "Marking $username to be kept as an Admin"
 									else
-										/bin/echo Marking $username to be removed as an Admin
+										/bin/echo "Marking $username to be removed as an Admin"
 								fi
 								SectionEnd
 						fi
@@ -234,9 +239,9 @@ for username in $(dscl . list /Users UniqueID | awk '$2 > 200 { print $1 }' | tr
 		else # User is not an admin but should be
 				if [[ $AdminUsers == *$username* ]] # Checking user against list and add to "Add" Array
 					then
-						/bin/echo Checking $username
-						/bin/echo User '"'$username'"' is in list of Desired Local Admins
-						/bin/echo Marking $username to be set as an Admin
+						/bin/echo "Checking $username"
+						/bin/echo 'User '"'$username'"' is in list of Desired Local Admins'
+						/bin/echo "Marking $username to be set as an Admin"
 						ADD=$(/bin/echo $AddArray | grep $username)
 						if [[ $ADD == "" ]]
 							then
@@ -246,6 +251,7 @@ for username in $(dscl . list /Users UniqueID | awk '$2 > 200 { print $1 }' | tr
 						SectionEnd     
 				fi
 		fi
+        unset ifs # set the IFS back to normal
 	done
 #
 }
@@ -259,16 +265,22 @@ AddUsers(){
 /bin/echo Processing any required additions
 #
 IFS=';' # Internal Field Seperator Delimiter is set to SemiColon (;)
+if [ $ZSH_VERSION ] # Check if shell is ZSH and if so enable IFS
+	then
+		setopt sh_word_split
+fi
+#
 read -ra AddUser <<< "$AddArray" # Read in the Array of Users to Process for Addition
 for PlusUser in "${AddUser[@]}" # Process Each User in the "Add" Array
 	do # access each element of array
 		# Ouput which user we are adding. For Reporting Purposes
-		/bin/echo Adding $PlusUser to Admins List
+		/bin/echo "Adding $PlusUser to Admins List"
 		# Add User to the 3 relevant Groups.
 		dseditgroup -o edit -a $PlusUser admin
 		dseditgroup -o edit -a $PlusUser _appserveradm
 		dseditgroup -o edit -a $PlusUser _appserverusr
 	done
+unset ifs # set the IFS back to normal
 #
 }
 #
@@ -282,6 +294,11 @@ RemoveUsers(){
 /bin/echo Processing any required removals
 #
 IFS=';' # Internal Field Seperator Delimiter is set to SemiColon (;)
+if [ $ZSH_VERSION ] # Check if shell is ZSH and if so enable IFS
+	then
+		setopt sh_word_split
+fi
+#
 read -ra RemoveUser <<< "$RemoveArray" # Read in the Array of Users to Process for Removal
 for REMuser in "${RemoveUser[@]}" # Process Each User in the "Remove" Array
 	do # access each element of array
@@ -317,6 +334,7 @@ for REMuser in "${RemoveUser[@]}" # Process Each User in the "Remove" Array
 				dseditgroup -o edit -d $REMuser _appserverusr
 		fi
 	done
+unset ifs # set the IFS back to normal
 #
 }
 #
@@ -326,14 +344,9 @@ for REMuser in "${RemoveUser[@]}" # Process Each User in the "Remove" Array
 #
 SectionEnd(){
 #
-# Outputting a Blank Line for Reporting Purposes
-/bin/echo
-#
-# Outputting a Dotted Line for Reporting Purposes
-/bin/echo  -----------------------------------------------
-#
-# Outputting a Blank Line for Reporting Purposes
-/bin/echo
+/bin/echo # Outputting a Blank Line for Reporting Purposes
+/bin/echo  ----------------------------------------------- # Outputting a Dotted Line for Reporting Purposes
+/bin/echo # Outputting a Blank Line for Reporting Purposes
 #
 }
 #
@@ -344,15 +357,9 @@ SectionEnd(){
 ScriptEnd(){
 #
 /bin/echo Ending Script '"'$ScriptName'"'
-#
-# Outputting a Blank Line for Reporting Purposes
-/bin/echo
-#
-# Outputting a Dotted Line for Reporting Purposes
-/bin/echo  -----------------------------------------------
-#
-# Outputting a Blank Line for Reporting Purposes
-/bin/echo
+/bin/echo # Outputting a Blank Line for Reporting Purposes
+/bin/echo  ----------------------------------------------- # Outputting a Dotted Line for Reporting Purposes
+/bin/echo # Outputting a Blank Line for Reporting Purposes
 #
 }
 #
@@ -372,12 +379,11 @@ SectionEnd
 #
 AdminCheck
 #
-/bin/echo Current Local Admins list :
-/bin/echo $AdminArray
-# Outputs a blank line for reporting purposes
-/bin/echo
-/bin/echo Current AD Groups whose members should be Admins :
-/bin/echo $CurrentLocalADAdmins
+/bin/echo 'Current Local Admins list :'
+/bin/echo "$AdminArray"
+/bin/echo # Outputs a blank line for reporting purposes
+/bin/echo 'Current AD Groups whose members should be Admins :'
+/bin/echo "$CurrentLocalADAdmins"
 SectionEnd
 #
 ADadminGroups
@@ -394,15 +400,14 @@ SectionEnd
 AddUsers
 SectionEnd   
 #
-unset IFS
+unset ifs # set the IFS back to normal
 AdminCheck
 #
-/bin/echo New Admins list :
-/bin/echo $AdminArray
-# Outputs a blank line for reporting purposes
-/bin/echo
-/bin/echo New AD Groups whose members should be Admins :
-/bin/echo $CurrentLocalADAdmins
+/bin/echo 'New Admins list :'
+/bin/echo "$AdminArray"
+/bin/echo # Outputs a blank line for reporting purposes
+/bin/echo 'New AD Groups whose members should be Admins :'
+/bin/echo "$CurrentLocalADAdmins"
 #
 SectionEnd
 ScriptEnd
